@@ -18,7 +18,7 @@
   let state = {
     method: 'dados_d6',
     variation: null,
-    lang: 'portuguese',
+    lang: 'english',
     seedSize: 12,
     collected: [],       // {index, word}
     pendingCoinBits: [],
