@@ -56,7 +56,19 @@
   function populateVariationSelect() {
     const method = BIP39Methods.get(state.method);
     const sel = $('variationSelect');
-    sel.innerHTML = method.variations.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
+    if (method.variations.some(v => v.group)) {
+      const groups = [];
+      const byGroup = {};
+      method.variations.forEach(v => {
+        if (!byGroup[v.group]) { byGroup[v.group] = []; groups.push(v.group); }
+        byGroup[v.group].push(v);
+      });
+      sel.innerHTML = groups.map(g => `<optgroup label="${g}">${
+        byGroup[g].map(v => `<option value="${v.id}">${v.label}</option>`).join('')
+      }</optgroup>`).join('');
+    } else {
+      sel.innerHTML = method.variations.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
+    }
     const def = method.variations.find(v => v.default) || method.variations[0];
     state.variation = def.id;
     sel.value = state.variation;
@@ -86,12 +98,12 @@
         }
         html += '</div>';
       }
-      const r = method.pick(state.diceValues);
+      const r = method.pick(state.diceValues, variation.faces);
       html += renderResultBox(r);
       box.innerHTML = html;
       box.querySelectorAll('.die').forEach(el => el.onclick = () => {
         const i = +el.dataset.i;
-        state.diceValues[i] = state.diceValues[i] % 6 + 1;
+        state.diceValues[i] = state.diceValues[i] % variation.faces + 1;
         renderMethodInput();
       });
       wireAddButton(r);
