@@ -13,61 +13,61 @@ const BIP39Methods = (() => {
 
   function register(method) { methods[method.id] = method; }
 
-  // Tipos de dado suportados e o menor número de dados desse tipo que,
-  // jogados juntos, já cobrem a faixa de 2048 palavras (faces^minTotal ≥ 2048).
-  const DICE_TYPES = [6, 12, 20].map(faces => {
+  // Cada tipo de dado (D6/D12/D20) é seu próprio método, com uma variação
+  // por quantidade de dados lançados por vez (1 a 11 "lances"). Rodadas =
+  // número mínimo de rodadas para acumular pelo menos minTotal dados desse
+  // tipo no total (faces^minTotal ≥ 2048, cobrindo a faixa de 2048 palavras;
+  // para D6 é 5, mesmo limiar do método original). Nenhum dado jogado é
+  // descartado: todos os dígitos entram na conta, só o limiar de rejeição
+  // muda com o total (ver pick).
+  function registerDiceMethod(faces, methodLabel, origin) {
     let minTotal = 1;
     while (Math.pow(faces, minTotal) < 2048) minTotal++;
-    return { faces, group: `D${faces}`, minTotal };
-  });
 
-  register({
-    id: 'dados',
-    label: 'Dados (D6 / D12 / D20)',
-    origin: 'github.com/FelipeCOjeda/Bip39-Dados6 (D6); D12/D20 generalizam a mesma fórmula',
-    // Uma variação por tipo de dado (D6/D12/D20) × quantidade jogada por
-    // rodada (1 a 11). Rodadas = número mínimo de rodadas para acumular
-    // pelo menos minTotal dados desse tipo no total (faces^minTotal ≥ 2048,
-    // o mesmo limiar do método original de 5×D6). Nenhum dado jogado é
-    // descartado: todos os dígitos entram na conta (ver pick abaixo), só
-    // o limiar de rejeição muda com o total.
-    variations: DICE_TYPES.flatMap(({ faces, group, minTotal }) =>
-      Array.from({ length: 11 }, (_, i) => {
+    register({
+      id: `dados_d${faces}`,
+      label: methodLabel,
+      origin,
+      isDice: true,
+      variations: Array.from({ length: 11 }, (_, i) => {
         const n = i + 1;
         const rounds = Math.ceil(minTotal / n);
         const total = rounds * n;
         return {
-          id: `${group.toLowerCase()}-${n}x`,
-          group,
+          id: `${n}x`,
           label: n === minTotal
-            ? `${n} dado${n > 1 ? 's' : ''} por vez (padrão, 1 rodada, ${total} no total)`
-            : `${n} dado${n > 1 ? 's' : ''} por vez (${rounds} rodada${rounds > 1 ? 's' : ''}, ${total} no total)`,
+            ? `${n} dado${n > 1 ? 's' : ''} por lance (padrão, 1 rodada, ${total} no total)`
+            : `${n} dado${n > 1 ? 's' : ''} por lance (${rounds} rodada${rounds > 1 ? 's' : ''}, ${total} no total)`,
           faces,
           diceCount: n,
           rounds,
-          default: faces === 6 && n === minTotal
+          default: n === minTotal
         };
-      })
-    ),
-    // inputs: array com todos os valores 1..faces jogados (rounds*diceCount),
-    // na ordem em que foram jogados. faces: número de lados do dado usado.
-    // Índice = número em base `faces` desses dígitos; se cair na faixa que
-    // causaria viés no módulo 2048, descarta.
-    pick(inputs, faces) {
-      let idx = 0;
-      for (const d of inputs) idx = idx * faces + (d - 1);
-      const total = Math.pow(faces, inputs.length);
-      const usable = Math.floor(total / 2048) * 2048;
-      if (idx >= usable) {
-        return {
-          valid: false,
-          discardReason: `Combinação fora da faixa utilizável (${usable} de ${total}) — descarte e jogue os ${inputs.length} dados de novo.`,
-          detail: { idx, total }
-        };
+      }),
+      // inputs: array com todos os valores 1..faces jogados (rounds*diceCount),
+      // na ordem em que foram jogados. Índice = número em base `faces` desses
+      // dígitos; se cair na faixa que causaria viés no módulo 2048, descarta.
+      pick(inputs, f) {
+        const base = f || faces;
+        let idx = 0;
+        for (const d of inputs) idx = idx * base + (d - 1);
+        const total = Math.pow(base, inputs.length);
+        const usable = Math.floor(total / 2048) * 2048;
+        if (idx >= usable) {
+          return {
+            valid: false,
+            discardReason: `Combinação fora da faixa utilizável (${usable} de ${total}) — descarte e jogue os ${inputs.length} dados de novo.`,
+            detail: { idx, total }
+          };
+        }
+        return { valid: true, index: idx % 2048, detail: { idx, total } };
       }
-      return { valid: true, index: idx % 2048, detail: { idx, total } };
-    }
-  });
+    });
+  }
+
+  registerDiceMethod(6, 'Dados (D6)', 'github.com/FelipeCOjeda/Bip39-Dados6');
+  registerDiceMethod(12, 'Dados (D12)', 'Generaliza a fórmula do Bip39-Dados6 (D6) para D12');
+  registerDiceMethod(20, 'Dados (D20)', 'Generaliza a fórmula do Bip39-Dados6 (D6) para D20');
 
   register({
     id: 'baralho',

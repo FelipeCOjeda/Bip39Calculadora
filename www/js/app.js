@@ -16,7 +16,7 @@
   }
 
   let state = {
-    method: 'dados',
+    method: 'dados_d6',
     variation: null,
     lang: 'portuguese',
     seedSize: 12,
@@ -56,19 +56,7 @@
   function populateVariationSelect() {
     const method = BIP39Methods.get(state.method);
     const sel = $('variationSelect');
-    if (method.variations.some(v => v.group)) {
-      const groups = [];
-      const byGroup = {};
-      method.variations.forEach(v => {
-        if (!byGroup[v.group]) { byGroup[v.group] = []; groups.push(v.group); }
-        byGroup[v.group].push(v);
-      });
-      sel.innerHTML = groups.map(g => `<optgroup label="${g}">${
-        byGroup[g].map(v => `<option value="${v.id}">${v.label}</option>`).join('')
-      }</optgroup>`).join('');
-    } else {
-      sel.innerHTML = method.variations.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
-    }
+    sel.innerHTML = method.variations.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
     const def = method.variations.find(v => v.default) || method.variations[0];
     state.variation = def.id;
     sel.value = state.variation;
@@ -85,7 +73,7 @@
       return;
     }
 
-    if (method.id === 'dados') {
+    if (method.isDice) {
       const variation = method.variations.find(v => v.id === state.variation);
       const total = variation.rounds * variation.diceCount;
       if (!state.diceValues || state.diceValues.length !== total) state.diceValues = new Array(total).fill(1);
