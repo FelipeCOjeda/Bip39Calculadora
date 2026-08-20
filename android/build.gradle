@@ -1,0 +1,48 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.2'
+        classpath 'com.google.gms:google-services:4.4.2'
+
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+apply from: "variables.gradle"
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    // Este servidor só tem JDK 17 instalado; os módulos do Capacitor pedem
+    // sourceCompatibility 21 por padrão. Força 17 em todos os subprojetos,
+    // depois que cada um já aplicou sua própria config (afterEvaluate),
+    // pra sobrescrever de forma confiável mesmo após `cap sync` regenerar
+    // app/capacitor.build.gradle.
+    afterEvaluate {
+        if (project.hasProperty('android')) {
+            android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_17
+                    targetCompatibility JavaVersion.VERSION_17
+                }
+            }
+        }
+        tasks.withType(JavaCompile).configureEach {
+            sourceCompatibility = "17"
+            targetCompatibility = "17"
+        }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}

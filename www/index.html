@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none';" />
+<title>BIP39 Calculadora</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">BIP39 <em>Calculadora</em></div>
+  <nav class="tabs" id="mainTabs">
+    <button class="tab-btn active" data-tab="gerar">Gerar</button>
+    <button class="tab-btn" data-tab="validar">Validar</button>
+    <button class="tab-btn" data-tab="apoie">Apoie</button>
+  </nav>
+</header>
+
+<section class="warning">
+  <span class="warning-icon">!</span>
+  <div><strong>Nunca use este app em um dispositivo conectado à internet, Wi-Fi ou Bluetooth ao gerar uma seed real.</strong>
+  Este app não pede nem usa permissão de rede — mas o cuidado é seu: mantenha o aparelho em modo avião.</div>
+</section>
+
+<main>
+
+  <!-- ===================== TAB: GERAR ===================== -->
+  <section class="panel-tab active" id="tab-gerar">
+
+    <div class="panel">
+      <div class="row">
+        <label>Método
+          <select id="methodSelect"></select>
+        </label>
+        <label>Variação
+          <select id="variationSelect"></select>
+        </label>
+      </div>
+      <div class="row">
+        <label>Idioma da wordlist
+          <select id="langSelect"></select>
+        </label>
+        <label>Tamanho da seed
+          <select id="seedSizeSelect">
+            <option value="12">12 palavras</option>
+            <option value="24">24 palavras</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="panel" id="inputPanel">
+      <div class="entry-head">
+        <div><span id="filledCount">0</span>/<span id="targetCount">11</span> palavras de entropia</div>
+        <button id="clearBtn" class="text-btn">Limpar tudo</button>
+      </div>
+      <div id="methodInput"></div>
+    </div>
+
+    <div class="panel" id="collectedPanel" hidden>
+      <h2>Palavras coletadas</h2>
+      <div class="chips" id="collectedChips"></div>
+      <div class="quality" id="qualityBox"></div>
+    </div>
+
+    <div class="panel" id="checksumPanel" hidden>
+      <h2>Palavra final (checksum)</h2>
+      <p class="muted">Calculado localmente via SHA-256 (Web Crypto), sem rede. Escolha uma das palavras válidas abaixo.</p>
+      <div class="checksum-list" id="checksumList"></div>
+    </div>
+
+    <div class="panel results" id="resultPanel" hidden>
+      <h2>Seed final</h2>
+      <div class="seed-display" id="seedDisplay"></div>
+      <button id="copySeedBtn" class="btn-primary">Copiar seed</button>
+    </div>
+
+  </section>
+
+  <!-- ===================== TAB: VALIDAR ===================== -->
+  <section class="panel-tab" id="tab-validar">
+    <div class="panel">
+      <h2>Validar checksum de uma seed existente</h2>
+      <p class="muted">Cole as 12 ou 24 palavras (separadas por espaço) para conferir se o checksum bate. Local, sem rede.</p>
+      <label>Idioma
+        <select id="validateLangSelect"></select>
+      </label>
+      <textarea id="validateInput" rows="3" placeholder="palavra1 palavra2 palavra3 ..."></textarea>
+      <button id="validateBtn" class="btn-primary">Validar</button>
+      <div id="validateResult"></div>
+    </div>
+  </section>
+
+  <!-- ===================== TAB: APOIE ===================== -->
+  <section class="panel-tab" id="tab-apoie">
+    <div class="panel">
+      <h2>Apoie o projeto</h2>
+      <p class="muted">App gratuito, aberto e sem anúncios ou telemetria. Se ele te ajudou, considere apoiar:</p>
+      <div class="donation-box">
+        <div class="label">Doação (Bitcoin on-chain)</div>
+        <div class="value mono" id="donationAddress">SEU_ENDERECO_BTC_AQUI</div>
+        <button id="copyDonationBtn" class="text-btn">Copiar endereço</button>
+      </div>
+      <div class="links">
+        <button class="link-btn" data-url="https://github.com/FelipeCOjeda">GitHub</button>
+        <button class="link-btn" data-url="https://x.com/ojedabtc">X (@ojedabtc)</button>
+        <button class="link-btn" data-url="mailto:SEU_EMAIL_SUPORTE_AQUI">Suporte</button>
+      </div>
+      <p class="disclaimer">Este app é uma ferramenta educacional/utilitária. Você é responsável por como e onde gera e guarda sua seed.</p>
+    </div>
+  </section>
+
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script src="js/wordlists.js"></script>
+<script src="js/bip39-core.js"></script>
+<script src="js/methods.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

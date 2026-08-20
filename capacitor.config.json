@@ -1,0 +1,8 @@
+{
+  "appId": "st.felipecojeda.bip39calc",
+  "appName": "BIP39 Calculadora",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https"
+  }
+}
