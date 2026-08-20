@@ -7,7 +7,7 @@ body{
   background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
   min-height:100vh; padding-bottom:40px;
 }
-.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:20px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:calc(env(safe-area-inset-top, 0px) + 1cm) 20px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:10}
 .brand{font-weight:800;font-size:26px;letter-spacing:-.01em}
 .brand em{font-style:normal;color:var(--orange)}
 .tabs{display:flex;gap:6px;background:#0c0f13;padding:5px;border-radius:12px;border:1px solid var(--line)}
