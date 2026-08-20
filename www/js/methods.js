@@ -15,17 +15,43 @@ const BIP39Methods = (() => {
 
   register({
     id: 'dados',
-    label: 'Dados (5×D6)',
+    label: 'Dados (D6)',
     origin: 'github.com/FelipeCOjeda/Bip39-Dados6',
-    variations: [
-      { id: '5d6', label: '5 dados de 6 faces (padrão)', dieFaces: 6, dieCount: 5 }
-    ],
-    // inputs: array de 5 valores 1-6
+    // Uma variação por quantidade de dados jogados por rodada (1 a 11).
+    // Rodadas = número mínimo de rodadas para acumular pelo menos 5 dados
+    // no total (6^5 = 7776 ≥ 2048, o mesmo limiar do método original de
+    // 5 dados). Nenhum dado jogado é descartado: todos os dígitos entram
+    // na conta (ver pick abaixo), só o limiar de rejeição muda com o total.
+    variations: Array.from({ length: 11 }, (_, i) => {
+      const n = i + 1;
+      const rounds = Math.ceil(5 / n);
+      const total = rounds * n;
+      return {
+        id: `${n}d6`,
+        label: n === 5
+          ? '5 dados por vez (padrão, 1 rodada, 5 no total)'
+          : `${n} dado${n > 1 ? 's' : ''} por vez (${rounds} rodada${rounds > 1 ? 's' : ''}, ${total} no total)`,
+        diceCount: n,
+        rounds,
+        default: n === 5
+      };
+    }),
+    // inputs: array com todos os valores 1-6 jogados (rounds*diceCount),
+    // na ordem em que foram jogados. Índice = número em base 6 desses
+    // dígitos; se cair na faixa que causaria viés no módulo 2048, descarta.
     pick(inputs) {
-      const [d1, d2, d3, d4, d5] = inputs;
-      const idx = (d1 - 1) * 1296 + (d2 - 1) * 216 + (d3 - 1) * 36 + (d4 - 1) * 6 + (d5 - 1);
-      if (idx >= 6144) return { valid: false, discardReason: 'Índice ≥ 6144 — role os 5 dados de novo.', detail: { idx } };
-      return { valid: true, index: idx % 2048, detail: { idx } };
+      let idx = 0;
+      for (const d of inputs) idx = idx * 6 + (d - 1);
+      const total = Math.pow(6, inputs.length);
+      const usable = Math.floor(total / 2048) * 2048;
+      if (idx >= usable) {
+        return {
+          valid: false,
+          discardReason: `Combinação fora da faixa utilizável (${usable} de ${total}) — descarte e jogue os ${inputs.length} dados de novo.`,
+          detail: { idx, total }
+        };
+      }
+      return { valid: true, index: idx % 2048, detail: { idx, total } };
     }
   });
 
@@ -34,14 +60,15 @@ const BIP39Methods = (() => {
     label: 'Baralho (2 cartas, sem reposição)',
     origin: 'github.com/FelipeCOjeda/Bip39-baralho',
     variations: [
-      { id: '2cartas', label: '2 cartas de um baralho de 52 (padrão)' }
+      { id: '1baralho52', label: '1 baralho, 52 cartas (padrão)', deckSize: 52, default: true },
+      { id: '2baralhos104', label: '2 baralhos, 104 cartas', deckSize: 104 }
     ],
-    // inputs: [a, b] índices 0-51 de duas cartas distintas
+    // inputs: [a, b, deckSize] índices 0..deckSize-1 de duas cartas distintas
     pick(inputs) {
-      const [a, b] = inputs;
+      const [a, b, deckSize] = inputs;
       if (a === b) return { valid: false, discardReason: 'Cartas iguais — escolha duas cartas diferentes.' };
       const bp = b < a ? b : b - 1;
-      const n = 51 * a + bp;
+      const n = (deckSize - 1) * a + bp;
       if (n > 2047) return { valid: false, discardReason: 'N > 2047 — devolva as cartas, embaralhe e repita.', detail: { n } };
       return { valid: true, index: n, detail: { n } };
     }

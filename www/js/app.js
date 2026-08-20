@@ -4,13 +4,16 @@
     italian: 'Italiano', czech: 'Čeština', japanese: '日本語', korean: '한국어',
     chinese_simplified: '中文(简体)', chinese_traditional: '中文(繁體)'
   };
-  const CARD_NAMES = (() => {
+  function buildCardNames(deckSize) {
     const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
     const suits = ['♠','♥','♦','♣'];
+    const decks = deckSize / 52;
     const out = [];
-    for (const s of suits) for (const r of ranks) out.push(r + s);
+    for (let d = 0; d < decks; d++) {
+      for (const s of suits) for (const r of ranks) out.push(r + s + (decks > 1 ? ` (baralho ${d + 1})` : ''));
+    }
     return out;
-  })();
+  }
 
   let state = {
     method: 'dados',
@@ -54,7 +57,8 @@
     const method = BIP39Methods.get(state.method);
     const sel = $('variationSelect');
     sel.innerHTML = method.variations.map(v => `<option value="${v.id}">${v.label}</option>`).join('');
-    state.variation = method.variations[0].id;
+    const def = method.variations.find(v => v.default) || method.variations[0];
+    state.variation = def.id;
     sel.value = state.variation;
   }
 
@@ -70,31 +74,41 @@
     }
 
     if (method.id === 'dados') {
-      if (!state.dice) state.dice = [1, 1, 1, 1, 1];
-      let html = '<div class="die-row">';
-      for (let i = 0; i < 5; i++) html += `<div class="die" data-i="${i}">${state.dice[i]}</div>`;
-      html += '</div>';
-      const r = method.pick(state.dice);
+      const variation = method.variations.find(v => v.id === state.variation);
+      const total = variation.rounds * variation.diceCount;
+      if (!state.diceValues || state.diceValues.length !== total) state.diceValues = new Array(total).fill(1);
+      let html = '';
+      for (let round = 0; round < variation.rounds; round++) {
+        html += `<div class="muted" style="margin:8px 0 4px">Rodada ${round + 1}/${variation.rounds} (${variation.diceCount} dado${variation.diceCount > 1 ? 's' : ''}):</div><div class="die-row">`;
+        for (let i = 0; i < variation.diceCount; i++) {
+          const idx = round * variation.diceCount + i;
+          html += `<div class="die" data-i="${idx}">${state.diceValues[idx]}</div>`;
+        }
+        html += '</div>';
+      }
+      const r = method.pick(state.diceValues);
       html += renderResultBox(r);
       box.innerHTML = html;
       box.querySelectorAll('.die').forEach(el => el.onclick = () => {
         const i = +el.dataset.i;
-        state.dice[i] = state.dice[i] % 6 + 1;
+        state.diceValues[i] = state.diceValues[i] % 6 + 1;
         renderMethodInput();
       });
       wireAddButton(r);
     }
 
     else if (method.id === 'baralho') {
+      const variation = method.variations.find(v => v.id === state.variation);
+      const cardNames = buildCardNames(variation.deckSize);
       if (state.card1 === undefined) { state.card1 = ''; state.card2 = ''; }
-      const opts = CARD_NAMES.map((c, i) => `<option value="${i}">${c}</option>`).join('');
+      const opts = cardNames.map((c, i) => `<option value="${i}">${c}</option>`).join('');
       let html = `<div class="card-selects">
         <select id="card1Sel"><option value="">Carta 1</option>${opts}</select>
         <select id="card2Sel"><option value="">Carta 2</option>${opts}</select>
       </div>`;
       let r = null;
       if (state.card1 !== '' && state.card2 !== '') {
-        r = method.pick([+state.card1, +state.card2]);
+        r = method.pick([+state.card1, +state.card2, variation.deckSize]);
         html += renderResultBox(r);
       }
       box.innerHTML = html;
@@ -173,7 +187,7 @@
       const list = BIP39Core.wordlistFor(state.lang);
       state.collected.push({ index: r.index, word: list[r.index] });
       // reset per-method transient input
-      state.dice = [1, 1, 1, 1, 1];
+      state.diceValues = null;
       state.card1 = ''; state.card2 = '';
       state.b1 = ''; state.b2 = '';
       state.coinBits = new Array(11).fill(null);
@@ -282,10 +296,10 @@
 
   // ---------- Apoie tab ----------
   function setupApoieTab() {
-    $('copyDonationBtn').onclick = () => {
-      navigator.clipboard.writeText($('donationAddress').textContent);
+    document.querySelectorAll('.copy-donation-btn').forEach(btn => btn.onclick = () => {
+      navigator.clipboard.writeText($(btn.dataset.target).textContent);
       toast('Endereço copiado.');
-    };
+    });
     document.querySelectorAll('.link-btn').forEach(btn => btn.onclick = async () => {
       const url = btn.dataset.url;
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Browser) {
@@ -301,9 +315,16 @@
     $('methodSelect').onchange = e => {
       state.method = e.target.value;
       populateVariationSelect();
+      state.card1 = ''; state.card2 = '';
+      state.diceValues = null;
       renderAll();
     };
-    $('variationSelect').onchange = e => { state.variation = e.target.value; renderAll(); };
+    $('variationSelect').onchange = e => {
+      state.variation = e.target.value;
+      state.card1 = ''; state.card2 = '';
+      state.diceValues = null;
+      renderAll();
+    };
     $('langSelect').onchange = e => { state.lang = e.target.value; renderAll(); };
     $('seedSizeSelect').onchange = e => {
       state.seedSize = +e.target.value;
