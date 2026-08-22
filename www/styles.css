@@ -69,6 +69,9 @@ textarea{margin:10px 0;resize:vertical;font-weight:400}
 .quality .w{border:1px solid #59451f;background:#211b10;color:#ffd36b;border-radius:8px;padding:6px 8px;margin-top:4px;font-size:12px}
 .quality .w.high{border-color:#5a292a;background:#211213;color:#ff9a9c}
 
+.subhead{font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--line)}
+.subhead:first-of-type{padding-top:0;border-top:0;margin-top:0}
+
 .checksum-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;max-height:320px;overflow:auto}
 .checksum-word{background:#0b0f13;border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:flex;justify-content:space-between;cursor:pointer;font-size:13px}
 .checksum-word:hover{border-color:var(--orange)}

@@ -23,7 +23,9 @@
     collected: [],       // {index, word}
     pendingCoinBits: [],
     checksumCandidates: [],
-    selectedFinal: null
+    selectedFinal: null,
+    // transient inputs para o sorteio físico da palavra de checksum
+    csDiceValues: null, csCard1: '', csCard2: '', csB1: '', csB2: '', csCoinBits: null
   };
 
   const $ = id => document.getElementById(id);
@@ -36,6 +38,20 @@
   }
 
   function targetCount() { return state.seedSize === 12 ? 11 : 23; }
+
+  // bits que sobram de entropia + cabem na última palavra junto do checksum
+  function checksumMeta() {
+    const checksumLen = state.seedSize === 12 ? 4 : 8;
+    const extraBits = 11 - checksumLen;
+    return { extraBits, combos: 1 << extraBits };
+  }
+
+  function resetChecksumDraw() {
+    state.csDiceValues = null;
+    state.csCard1 = ''; state.csCard2 = '';
+    state.csB1 = ''; state.csB2 = '';
+    state.csCoinBits = null;
+  }
 
   // ---------- Setup selects ----------
   function populateStaticSelects() {
@@ -207,6 +223,8 @@
     ).join('');
     document.querySelectorAll('#collectedChips .remove').forEach(el => el.onclick = () => {
       state.collected.splice(+el.dataset.i, 1);
+      state.selectedFinal = null;
+      resetChecksumDraw();
       renderAll();
     });
 
@@ -231,7 +249,7 @@
     const candidates = await BIP39Core.checksumCandidates(words, state.lang, state.seedSize);
     state.checksumCandidates = candidates;
     $('checksumList').innerHTML = candidates.map(c =>
-      `<div class="checksum-word" data-idx="${c.idx}">${c.word}<b>#${c.idx + 1}</b></div>`
+      `<div class="checksum-word${state.selectedFinal && state.selectedFinal.idx === c.idx ? ' selected' : ''}" data-idx="${c.idx}">${c.word}<b>#${c.idx + 1}</b></div>`
     ).join('');
     document.querySelectorAll('.checksum-word').forEach(el => el.onclick = () => {
       document.querySelectorAll('.checksum-word').forEach(x => x.classList.remove('selected'));
@@ -240,6 +258,101 @@
       state.selectedFinal = candidates.find(c => c.idx === idx);
       renderResult();
     });
+    renderChecksumDraw();
+  }
+
+  // Sorteio físico da palavra de checksum: usa o mesmo método/variação já
+  // escolhido para as palavras de entropia, mas escalado só para os bits
+  // extras que cabem na última palavra (7 bits em seed de 12, 3 em 24) —
+  // os bits de checksum em si vêm sempre do SHA-256, nunca de sorteio.
+  function renderChecksumDraw() {
+    const box = $('checksumDrawInput');
+    const hint = $('checksumDrawHint');
+    const { extraBits, combos } = checksumMeta();
+    const method = BIP39Methods.get(state.method);
+    const candidates = state.checksumCandidates;
+
+    function finish(r) {
+      if (!r.valid) {
+        box.insertAdjacentHTML('beforeend', `<div class="result-box"><span class="discard">⚠ ${r.discardReason}</span></div>`);
+        return;
+      }
+      const cand = candidates.find(c => parseInt(c.extra, 2) === r.index);
+      const already = state.selectedFinal && state.selectedFinal.idx === cand.idx;
+      box.insertAdjacentHTML('beforeend', `<div class="result-box">Sorteado: <div class="word">${cand.word}</div></div>
+        <button class="btn-primary" id="csUseBtn" ${already ? 'disabled' : ''}>${already ? 'Já em uso como palavra final' : 'Usar esta palavra final'}</button>`);
+      const btn = $('csUseBtn');
+      if (btn && !already) btn.onclick = () => { state.selectedFinal = cand; renderAll(); };
+    }
+
+    if (method.isDice) {
+      const variation = method.variations.find(v => v.id === state.variation);
+      const faces = variation.faces;
+      const count = method.diceCountFor(combos);
+      if (!state.csDiceValues || state.csDiceValues.length !== count) state.csDiceValues = new Array(count).fill(1);
+      hint.textContent = `Jogue ${count} dado${count > 1 ? 's' : ''} (D${faces}) para sortear os ${extraBits} bits restantes de entropia.`;
+      let html = '<div class="die-row">';
+      state.csDiceValues.forEach((v, i) => { html += `<div class="die" data-i="${i}">${v}</div>`; });
+      html += '</div>';
+      box.innerHTML = html;
+      box.querySelectorAll('.die').forEach(el => el.onclick = () => {
+        const i = +el.dataset.i;
+        state.csDiceValues[i] = state.csDiceValues[i] % faces + 1;
+        renderChecksumDraw();
+      });
+      finish(method.pick(state.csDiceValues, faces, combos));
+    }
+
+    else if (method.id === 'baralho') {
+      const variation = method.variations.find(v => v.id === state.variation);
+      const cardNames = buildCardNames(variation.deckSize);
+      const opts = cardNames.map((c, i) => `<option value="${i}">${c}</option>`).join('');
+      hint.textContent = `Tire 2 cartas para sortear os ${extraBits} bits restantes de entropia.`;
+      box.innerHTML = `<div class="card-selects">
+        <select id="csCard1Sel"><option value="">Carta 1</option>${opts}</select>
+        <select id="csCard2Sel"><option value="">Carta 2</option>${opts}</select>
+      </div>`;
+      $('csCard1Sel').value = state.csCard1;
+      $('csCard2Sel').value = state.csCard2;
+      $('csCard1Sel').onchange = e => { state.csCard1 = e.target.value; renderChecksumDraw(); };
+      $('csCard2Sel').onchange = e => { state.csCard2 = e.target.value; renderChecksumDraw(); };
+      if (state.csCard1 !== '' && state.csCard2 !== '') {
+        finish(method.pick([+state.csCard1, +state.csCard2, variation.deckSize], combos));
+      }
+    }
+
+    else if (method.id === 'bingo') {
+      hint.textContent = `Sorteie 2 bolas para os ${extraBits} bits restantes de entropia.`;
+      box.innerHTML = `<div class="card-selects">
+        <input type="number" id="csB1Input" min="1" max="60" placeholder="Bola 1 (1-60)" value="${state.csB1}">
+        <input type="number" id="csB2Input" min="1" max="60" placeholder="Bola 2 (1-60)" value="${state.csB2}">
+      </div>`;
+      $('csB1Input').oninput = e => { state.csB1 = e.target.value; renderChecksumDraw(); };
+      $('csB2Input').oninput = e => { state.csB2 = e.target.value; renderChecksumDraw(); };
+      const v1 = +state.csB1, v2 = +state.csB2;
+      if (state.csB1 && state.csB2 && v1 >= 1 && v1 <= 60 && v2 >= 1 && v2 <= 60) {
+        finish(method.pick([v1, v2], combos));
+      }
+    }
+
+    else if (method.id === 'moedas') {
+      if (!state.csCoinBits || state.csCoinBits.length !== extraBits) state.csCoinBits = new Array(extraBits).fill(null);
+      hint.textContent = `Lance a moeda ${extraBits}x para sortear os bits restantes de entropia.`;
+      let html = '<div class="coin-row">';
+      state.csCoinBits.forEach((bit, i) => {
+        const cls = bit === 0 ? 'heads' : bit === 1 ? 'tails' : '';
+        html += `<div class="coin ${cls}" data-i="${i}">${bit === 0 ? 'C' : bit === 1 ? 'K' : '?'}</div>`;
+      });
+      html += '</div>';
+      box.innerHTML = html;
+      box.querySelectorAll('.coin').forEach(el => el.onclick = () => {
+        const i = +el.dataset.i;
+        state.csCoinBits[i] = state.csCoinBits[i] === null ? 0 : state.csCoinBits[i] === 0 ? 1 : null;
+        renderChecksumDraw();
+      });
+      const allSet = state.csCoinBits.every(b => b === 0 || b === 1);
+      if (allSet) finish(method.pick(state.csCoinBits));
+    }
   }
 
   function renderResult() {
@@ -317,23 +430,30 @@
       populateVariationSelect();
       state.card1 = ''; state.card2 = '';
       state.diceValues = null;
+      state.selectedFinal = null;
+      resetChecksumDraw();
       renderAll();
     };
     $('variationSelect').onchange = e => {
       state.variation = e.target.value;
       state.card1 = ''; state.card2 = '';
       state.diceValues = null;
+      state.selectedFinal = null;
+      resetChecksumDraw();
       renderAll();
     };
     $('langSelect').onchange = e => { state.lang = e.target.value; renderAll(); };
     $('seedSizeSelect').onchange = e => {
       state.seedSize = +e.target.value;
       state.collected = [];
+      state.selectedFinal = null;
+      resetChecksumDraw();
       renderAll();
     };
     $('clearBtn').onclick = () => {
       state.collected = [];
       state.selectedFinal = null;
+      resetChecksumDraw();
       renderAll();
     };
   }

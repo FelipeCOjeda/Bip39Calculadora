@@ -67,7 +67,13 @@
 
     <div class="panel" id="checksumPanel" hidden>
       <h2>Palavra final (checksum)</h2>
-      <p class="muted">Calculado localmente via SHA-256 (Web Crypto), sem rede. Escolha uma das palavras válidas abaixo.</p>
+      <p class="muted">Calculado localmente via SHA-256 (Web Crypto), sem rede. Escolha uma das duas opções abaixo.</p>
+
+      <h3 class="subhead">Opção 1 — Sortear fisicamente</h3>
+      <p class="muted" id="checksumDrawHint"></p>
+      <div id="checksumDrawInput"></div>
+
+      <h3 class="subhead">Opção 2 — Escolher manualmente entre todas as opções válidas</h3>
       <div class="checksum-list" id="checksumList"></div>
     </div>
 

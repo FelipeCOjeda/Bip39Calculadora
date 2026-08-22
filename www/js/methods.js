@@ -46,13 +46,16 @@ const BIP39Methods = (() => {
       }),
       // inputs: array com todos os valores 1..faces jogados (rounds*diceCount),
       // na ordem em que foram jogados. Índice = número em base `faces` desses
-      // dígitos; se cair na faixa que causaria viés no módulo 2048, descarta.
-      pick(inputs, f) {
+      // dígitos; se cair na faixa que causaria viés no módulo `mod` (padrão
+      // 2048), descarta. `mod` menor é usado para sortear só os bits extras
+      // da palavra de checksum (ver checksumDraw em app.js).
+      pick(inputs, f, mod) {
         const base = f || faces;
+        const m = mod || 2048;
         let idx = 0;
         for (const d of inputs) idx = idx * base + (d - 1);
         const total = Math.pow(base, inputs.length);
-        const usable = Math.floor(total / 2048) * 2048;
+        const usable = Math.floor(total / m) * m;
         if (idx >= usable) {
           return {
             valid: false,
@@ -60,7 +63,13 @@ const BIP39Methods = (() => {
             detail: { idx, total }
           };
         }
-        return { valid: true, index: idx % 2048, detail: { idx, total } };
+        return { valid: true, index: idx % m, detail: { idx, total } };
+      },
+      // Menor quantidade de dados necessária para cobrir `mod` valores sem viés.
+      diceCountFor(mod) {
+        let n = 1;
+        while (Math.pow(faces, n) < mod) n++;
+        return n;
       }
     });
   }
@@ -77,14 +86,23 @@ const BIP39Methods = (() => {
       { id: '1baralho52', label: '1 baralho, 52 cartas (padrão)', deckSize: 52, default: true },
       { id: '2baralhos104', label: '2 baralhos, 104 cartas', deckSize: 104 }
     ],
-    // inputs: [a, b, deckSize] índices 0..deckSize-1 de duas cartas distintas
-    pick(inputs) {
+    // inputs: [a, b, deckSize] índices 0..deckSize-1 de duas cartas distintas.
+    // `mod` opcional: usado para sortear só os bits extras da palavra de
+    // checksum (ver checksumDraw em app.js); sem ele, mantém a faixa 0-2047
+    // original do método.
+    pick(inputs, mod) {
       const [a, b, deckSize] = inputs;
       if (a === b) return { valid: false, discardReason: 'Cartas iguais — escolha duas cartas diferentes.' };
       const bp = b < a ? b : b - 1;
       const n = (deckSize - 1) * a + bp;
-      if (n > 2047) return { valid: false, discardReason: 'N > 2047 — devolva as cartas, embaralhe e repita.', detail: { n } };
-      return { valid: true, index: n, detail: { n } };
+      if (!mod) {
+        if (n > 2047) return { valid: false, discardReason: 'N > 2047 — devolva as cartas, embaralhe e repita.', detail: { n } };
+        return { valid: true, index: n, detail: { n } };
+      }
+      const total = deckSize * (deckSize - 1);
+      const usable = Math.floor(total / mod) * mod;
+      if (n >= usable) return { valid: false, discardReason: 'Fora da faixa utilizável — devolva as cartas, embaralhe e repita.', detail: { n } };
+      return { valid: true, index: n % mod, detail: { n } };
     }
   });
 
@@ -95,12 +113,15 @@ const BIP39Methods = (() => {
     variations: [
       { id: '2bolas60', label: '2 bolas, 1-60 (padrão)' }
     ],
-    // inputs: [b1, b2] cada um 1-60
-    pick(inputs) {
+    // inputs: [b1, b2] cada um 1-60. `mod` opcional para sortear só os bits
+    // extras da palavra de checksum (ver checksumDraw em app.js).
+    pick(inputs, mod) {
       const [b1, b2] = inputs;
       const idx = (b1 - 1) * 60 + (b2 - 1);
-      if (idx >= 2048) return { valid: false, discardReason: 'Índice ≥ 2048 — sorteie as duas bolas de novo.', detail: { idx } };
-      return { valid: true, index: idx, detail: { idx } };
+      const m = mod || 2048;
+      const usable = Math.floor(3600 / m) * m;
+      if (idx >= usable) return { valid: false, discardReason: 'Índice fora da faixa utilizável — sorteie as duas bolas de novo.', detail: { idx } };
+      return { valid: true, index: idx % m, detail: { idx } };
     }
   });
 
