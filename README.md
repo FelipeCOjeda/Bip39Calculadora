@@ -1,6 +1,6 @@
 # 🔐 Bip39 Calculadora
 
-> Calculadora offline de palavras BIP39 para Android — segura, privada e sem internet.
+> Calculadora offline de BIP39 para Android — gera entropia com dados, baralho, bingo e moedas, calcula checksum e valida seed phrases. 100% local, sem internet.
 
 ![Android](https://img.shields.io/badge/Platform-Android-3DDC84?logo=android&logoColor=white)
 ![Offline](https://img.shields.io/badge/Mode-100%25%20Offline-blue)
@@ -18,21 +18,60 @@ Esta calculadora permite trabalhar com essas palavras de forma **100% offline**,
 
 ## ✨ Funcionalidades
 
-- ✅ Cálculo e validação de palavras BIP39
-- ✅ Suporte às **2048 palavras** da wordlist BIP39 padrão
-- ✅ Funciona **100% offline** — sem conexão com internet
-- ✅ Nenhum dado é enviado a servidores externos
-- ✅ Interface simples e intuitiva para Android
+- 🎲 **Dados** — gera entropia jogando dados físicos
+- 🃏 **Baralho** — gera entropia embaralhando cartas
+- 🎱 **Bingo** — gera entropia com pedras de bingo
+- 🪙 **Moedas** — gera entropia lançando moedas
+- ✅ **Checksum** — calcula e valida a última palavra BIP39
+- 🔑 Suporte às **2048 palavras** da wordlist BIP39 padrão
+- 📵 Funciona **100% offline** — sem nenhuma permissão de internet
 
 ---
 
 ## 📲 Download
 
-### Opção 1 — GitHub Releases *(recomendado)*
+### ⬇️ Link Direto
 
-Baixe o APK diretamente na página de [**Releases**](https://github.com/FelipeCOjeda/Bip39Calculadora/releases) do projeto.
+[**Baixar app-debug.apk**](https://github.com/FelipeCOjeda/Bip39Calculadora/releases/download/v0.1.0/app-debug.apk)
 
-### Opção 2 — Clonar e compilar
+Ou acesse a página de [**Releases**](https://github.com/FelipeCOjeda/Bip39Calculadora/releases) e clique em `app-debug.apk`.
+
+---
+
+## 🔐 Verificação de Integridade
+
+Após baixar, verifique o hash SHA256 antes de instalar:
+
+```
+7890b3d12d024fbac0940546d2df008376553b576417d382a028b0f1bef1e713
+```
+
+**Como verificar:**
+
+```bash
+# Linux / Mac
+sha256sum app-debug.apk
+
+# Windows (PowerShell)
+Get-FileHash app-debug.apk -Algorithm SHA256
+```
+
+---
+
+## 🔒 Segurança
+
+> ⚠️ **ATENÇÃO:** Seed phrases são as chaves do seu patrimônio em cripto. Nunca as compartilhe.
+
+| Característica | Status |
+|---|---|
+| 100% Offline | ✅ Sem permissão de internet |
+| Sem coleta de dados | ✅ Nenhum analytics ou tracking |
+| Código aberto | ✅ Auditável por qualquer pessoa |
+| Armazenamento local | ✅ Dados ficam apenas no seu dispositivo |
+
+---
+
+## 🛠️ Como Compilar
 
 ```bash
 git clone https://github.com/FelipeCOjeda/Bip39Calculadora.git
@@ -43,43 +82,6 @@ npx cap sync android
 ```
 
 Abra a pasta `android/` no **Android Studio** e gere o APK.
-
----
-
-## 🔒 Segurança
-
-> ⚠️ **ATENÇÃO:** Seed phrases são as chaves do seu patrimônio em cripto. Nunca as compartilhe.
-
-Este aplicativo foi desenvolvido com segurança em mente:
-
-| Característica | Status |
-|---|---|
-| 100% Offline | ✅ Sem permissão de internet |
-| Sem coleta de dados | ✅ Nenhum analytics ou tracking |
-| Código aberto | ✅ Auditável por qualquer pessoa |
-| Armazenamento local | ✅ Dados ficam apenas no seu dispositivo |
-
-### Verificar integridade do APK
-
-Após baixar, verifique o hash SHA256 do arquivo antes de instalar:
-
-```bash
-# Linux / Mac
-sha256sum Bip39Calculadora-APP.apk
-
-# Windows (PowerShell)
-Get-FileHash Bip39Calculadora-APP.apk -Algorithm SHA256
-```
-
-Compare com o hash publicado na página de [Releases](https://github.com/FelipeCOjeda/Bip39Calculadora/releases).
-
----
-
-## 🛠️ Tecnologias
-
-- [Capacitor](https://capacitorjs.com/) — framework para app híbrido Android
-- HTML / CSS / JavaScript — interface web
-- BIP39 wordlist padrão
 
 ---
 
@@ -95,13 +97,11 @@ Bip39Calculadora/
 
 ---
 
-## 🤝 Como Contribuir
+## 🛠️ Tecnologias
 
-1. Fork este repositório
-2. Crie sua branch: `git checkout -b feature/minha-feature`
-3. Commit suas mudanças: `git commit -m 'feat: adiciona funcionalidade X'`
-4. Push: `git push origin feature/minha-feature`
-5. Abra um **Pull Request**
+- [Capacitor](https://capacitorjs.com/) — framework para app híbrido Android
+- HTML / CSS / JavaScript — interface web
+- BIP39 wordlist padrão (2048 palavras)
 
 ---
 
